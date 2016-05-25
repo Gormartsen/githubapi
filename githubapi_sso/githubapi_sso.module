@@ -85,7 +85,7 @@ function githubapi_sso_form_user_login_alter(&$form, &$form_state, $form_id) {
     '#value' => t('Login with GitHub account'),
   );
   
-  $form['#validate'][] = 'githubapi_sso_link_submit';
+  $form['#validate'][] = 'githubapi_sso_login_validate';
 
 }
 
@@ -101,11 +101,21 @@ function githubapi_sso_link($form, &$form_state, $account) {
 }
 
 /**
+ * Process Login page Github login form validation.
+ * We use validation step to redirect user before user_login validate happen.
+ */
+function githubapi_sso_login_validate($form, &$form_state) {
+  if($form_state['clicked_button']['#id'] == 'edit-githubapi-sso' ) {
+    // Before redirect to github, let's clear session error from user login validation.
+    unset($_SESSION['messages']['error']);
+    githubapi_sso_redirect_to_github();
+  }
+}
+
+/**
  * Process Github connect form submission.
  */
 function githubapi_sso_link_submit($form, &$form_state) {
-  // Before redirect to github, let's clear session error from user login validation.
-  unset($_SESSION['messages']['error']);
   githubapi_sso_redirect_to_github();
 }
 
