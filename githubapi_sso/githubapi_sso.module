@@ -198,23 +198,47 @@ function githubapi_sso_get_access_token() {
       $token = $result['access_token'];
       $user_info = githubapi_sso_get_user_info($token);
       if($user->uid > 0) {
-        db_insert('githubapi_sso_login')
-          ->fields(array(
-            'uid' => $user->uid,
-            'name' => $user_info['login'],
-          ))
-          ->execute();
+        github_sso_assign($user_info);
       }
       else{
         github_sso_login($user_info, $token);
       }
-      backdrop_set_message(t('We connected to GitHub now.'));
-      backdrop_goto('user');
     }
   }
   // If we didn't get a token or code, connection to Github failed.
-  backdrop_set_message(t('Failed connecting to GitHub.'), 'error');
+  backdrop_set_message(t('Failed connecting to GitHub. Please try again latter.'), 'error');
   backdrop_goto('user');
+}
+
+/**
+ * Process attach github login to user loged user.
+ *
+ * @param $user_info array that contain github user data.
+ */
+function github_sso_assign($user_info){ 
+  // We need to check if it's already used.
+  $githubapi_sso = db_select('githubapi_sso_login', 'gsl')
+    ->fields('gsl')
+    ->condition('name', $user_info['login'])
+    ->execute()
+    ->fetchObject();
+
+  if($githubapi_sso) {
+    // This login already assigned.
+    backdrop_set_message(t('This github login already assigned to another user.'), 'error');
+    backdrop_set_message(t('Failed connecting to GitHub.'), 'error');
+    backdrop_goto('user');
+  }
+  else{
+    db_insert('githubapi_sso_login')
+      ->fields(array(
+        'uid' => $user->uid,
+        'name' => $user_info['login'],
+      ))
+      ->execute();
+    backdrop_set_message(t('We connected to GitHub now.'));
+    backdrop_goto('user');
+  }
 }
 
 /**
